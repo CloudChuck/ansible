@@ -1,0 +1,37 @@
+---
+- name: Install and configure nginx on containers
+  hosts: all
+
+
+  tasks:
+    - name: Install nginx
+      shell: apt update && apt install -y nginx
+
+
+    - name: Override nginx default config
+      copy:
+        dest: /etc/nginx/sites-available/default
+        content: |
+          server {
+              listen 80 default_server;
+              server_name localhost;
+
+              root /var/www/html;
+              index index.html;
+
+              location / {
+                  try_files $uri $uri/ =404;
+              }
+          }
+      notify:
+        - Reload nginx
+
+    - name: Start nginx manually (no systemd in containers)
+      shell: |
+        if ! pgrep -x nginx > /dev/null; then
+          nginx
+        fi
+
+  handlers:
+    - name: Reload nginx
+      shell: nginx -s reload
